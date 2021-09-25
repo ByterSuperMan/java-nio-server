@@ -32,7 +32,7 @@ public class Main {
             writeProxy.enqueue(response);
         };
 
-        Server server = new Server(9999, new HttpMessageReaderFactory(), messageProcessor);
+        Server server = new Server(8888, new HttpMessageReaderFactory(), messageProcessor);
 
         server.start();
 

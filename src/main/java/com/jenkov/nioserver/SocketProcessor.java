@@ -161,13 +161,13 @@ public class SocketProcessor implements Runnable {
                 SelectionKey key = keyIterator.next();
 
                 Socket socket = (Socket) key.attachment();
-
+                //将socket的数据缓冲队列中的数据全部写出
                 socket.messageWriter.write(socket, this.writeByteBuffer);
-
+                //写完数据的socket放入到无数据socket集合中
                 if(socket.messageWriter.isEmpty()){
                     this.nonEmptyToEmptySockets.add(socket);
                 }
-
+                //写完数据后，将该socket移除
                 keyIterator.remove();
             }
 
@@ -176,6 +176,10 @@ public class SocketProcessor implements Runnable {
         }
     }
 
+    /**
+     * 将需要写出数据的socket绑定到对写事件感兴趣的selector上
+     * @throws ClosedChannelException
+     */
     private void registerNonEmptySockets() throws ClosedChannelException {
         for(Socket socket : emptyToNonEmptySockets){
             socket.socketChannel.register(this.writeSelector, SelectionKey.OP_WRITE, socket);
@@ -183,6 +187,9 @@ public class SocketProcessor implements Runnable {
         emptyToNonEmptySockets.clear();
     }
 
+    /**
+     * 将没有数据需要处理并写出的socket从selector上解除绑定
+     */
     private void cancelEmptySockets() {
         for(Socket socket : nonEmptyToEmptySockets){
             SelectionKey key = socket.socketChannel.keyFor(this.writeSelector);
@@ -192,15 +199,23 @@ public class SocketProcessor implements Runnable {
         nonEmptyToEmptySockets.clear();
     }
 
+    /**
+     * 将之前处理请求得到的响应数据从队列中取出放入到每个socket内部的writer中，等待写出。
+     * 说实话，在我看来，这个writer有点类似于netty中的write方法，该方法就是将数据先写到缓冲区，之后随机应变写出到tcp socket中，而不是writeAndFlush。
+     * 每个Message内部都持有来自哪个socket的socketId
+     */
     private void takeNewOutboundMessages() {
+        //在队列中，可能存在多条将要写入同一个socket的消息
         Message outMessage = this.outboundMessageQueue.poll();
         while(outMessage != null){
             Socket socket = this.socketMap.get(outMessage.socketId);
 
             if(socket != null){
                 MessageWriter messageWriter = socket.messageWriter;
+                //当前的outMessage是这个socket第一条需要写出的消息
                 if(messageWriter.isEmpty()){
                     messageWriter.enqueue(outMessage);
+                    //socket中有消息需要写出了，将它从无数据socket集合中移除，加入到有数据socket集合中
                     nonEmptyToEmptySockets.remove(socket);
                     emptyToNonEmptySockets.add(socket);    //not necessary if removed from nonEmptyToEmptySockets in prev. statement.
                 } else{
