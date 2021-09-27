@@ -32,6 +32,7 @@ public class Socket {
             bytesRead = this.socketChannel.read(byteBuffer);
             totalBytesRead += bytesRead;
         }
+        //-1是流末尾，代表已经无数据可读了，之后应该关闭这个socket
         if(bytesRead == -1){
             this.endOfStreamReached = true;
         }

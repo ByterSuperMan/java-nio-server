@@ -118,11 +118,14 @@ public class SocketProcessor implements Runnable {
 
     private void readFromSocket(SelectionKey key) throws IOException {
         Socket socket = (Socket) key.attachment();
+        //将通道中的所有字节数据转化为Message并放入socket的完整消息缓冲队列中，如果socket中的数据已读完，则将socket标记为流末尾状态
         socket.messageReader.read(socket, this.readByteBuffer);
-
         List<Message> fullMessages = socket.messageReader.getMessages();
+
+        //完整的消息数量大于0就处理
         if(fullMessages.size() > 0){
             for(Message message : fullMessages){
+                //将消息写入writer的缓冲区中
                 message.socketId = socket.socketId;
                 this.messageProcessor.process(message, this.writeProxy);  //the message processor will eventually push outgoing messages into an IMessageWriter for this socket.
             }
