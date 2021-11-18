@@ -77,6 +77,10 @@ public class SocketProcessor implements Runnable {
 
 
     public void takeNewSockets() throws IOException {
+        /**
+         * 不断取出连接完成的socket，为其创建单独的 reader 和 writer；
+         * 然后将处理好的socket注册到对读事件感兴趣的selector上；
+         */
         Socket newSocket = this.inboundSocketQueue.poll();
 
         while(newSocket != null){
@@ -99,6 +103,10 @@ public class SocketProcessor implements Runnable {
 
 
     public void readFromSockets() throws IOException {
+        /**
+         * 在之前已经处理好了所有连接完成的socket并注册到了readSelector上；
+         * 在这里，从readSelector上再依次取出所有可读的socket处理其中的数据；
+         */
         int readReady = this.readSelector.selectNow();
 
         if(readReady > 0){

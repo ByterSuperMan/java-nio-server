@@ -24,7 +24,10 @@ public class Server {
     }
 
     public void start() throws IOException {
-
+        /**
+         * SocketAccepter将连接完成的socket放入socketQueue；
+         * SocketProcessor从socketQueue中取出连接完成的socket读取数据并处理数据
+         */
         Queue socketQueue = new ArrayBlockingQueue(1024); //move 1024 to ServerConfig
 
         this.socketAccepter  = new SocketAccepter(tcpPort, socketQueue);
